@@ -34,6 +34,8 @@ jobs:
       - name: Compile API and tests
         run: python -m compileall -q app tests
       - name: Run database-independent API tests
+        env:
+          PYTHONPATH: .
         run: pytest -q tests/test_models.py
 
   docker-integration:
