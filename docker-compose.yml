@@ -2,6 +2,14 @@ services:
   db:
     image: postgis/postgis:16-3.4
     environment:
+      DATABASE_URL: postgresql+asyncpg://logistics:integration-password@integration-db:5432/logistics_test
+      REDIS_URL: redis://integration-redis:6379/0
+      JWT_SECRET: integration-test-secret-at-least-32-chars
+      OTP_MOCK_CODE: "123456"
+      OTP_TTL_SECONDS: "300"
+      TENANT_BOOTSTRAP_KEY: integration-bootstrap-key
+      CORS_ORIGINS: http://localhost:3000
+      PYTHONPATH: /app
       POSTGRES_USER: logistics
       POSTGRES_PASSWORD: logistics
       POSTGRES_DB: logistics
