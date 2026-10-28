@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics
+      POSTGRES_DB: logistics
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics"]
+      interval: 5s
+      retries: 15
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 15
+  migrate:
+    build: ./apps/api
+    env_file: .env
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db: {condition: service_healthy}
+    restart: "no"
+  api:
+    build: ./apps/api
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+  dashboard:
+    build:
+      context: ./apps/dashboard
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+  integration-db:
+    image: postgis/postgis:16-3.4
+    profiles: [integration]
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: integration-password
+      POSTGRES_DB: logistics_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  integration-redis:
+    image: redis:7-alpine
+    profiles: [integration]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  integration-tests:
+    build: ./apps/api
+    profiles: [integration]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://logistics:integration-password@integration-db:5432/logistics_test
+      REDIS_URL: redis://integration-redis:6379/0
+      JWT_SECRET: integration-test-secret-at-least-32-chars
+      OTP_MOCK_CODE: "123456"
+      OTP_TTL_SECONDS: "300"
+      TENANT_BOOTSTRAP_KEY: integration-bootstrap-key
+      CORS_ORIGINS: http://localhost:3000
+    command: ["sh", "-c", "alembic upgrade head && pytest -q tests/integration"]
+    depends_on:
+      integration-db: {condition: service_healthy}
+      integration-redis: {condition: service_healthy}
+
+volumes:
+  pgdata:

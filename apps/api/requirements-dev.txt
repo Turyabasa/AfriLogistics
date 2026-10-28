@@ -1,0 +1,5 @@
+# Install application dependencies before test/tooling dependencies.
+-r requirements.txt
+pytest==8.3.5
+pytest-asyncio==0.26.0
+httpx==0.28.1
