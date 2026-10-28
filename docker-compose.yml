@@ -71,7 +71,7 @@ services:
       OTP_TTL_SECONDS: "300"
       TENANT_BOOTSTRAP_KEY: integration-bootstrap-key
       CORS_ORIGINS: http://localhost:3000
-    command: ["sh", "-c", "alembic upgrade head && pytest -q tests/integration"]
+    command: ["sh", "-c", "python -m pip install --no-cache-dir -r requirements-dev.txt && alembic upgrade head && pytest -q tests/integration"]
     depends_on:
       integration-db: {condition: service_healthy}
       integration-redis: {condition: service_healthy}
